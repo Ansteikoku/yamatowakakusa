@@ -60,7 +60,7 @@
 <div id="board" style="display: none;">
   <h2>わかくさ掲示板</h2>
   <textarea id="new-thread-title" placeholder="新しいスレッドのタイトル"></textarea>
-  <button onclick="createThread()">スレッド作成</button>
+  <button id="create-thread-button">スレッド作成</button>
   <div id="threads-list"></div>
 </div>
 
@@ -84,17 +84,26 @@
   // スレッド作成
   function createThread() {
     const title = document.getElementById('new-thread-title').value;
+    console.log("スレッド作成ボタンが押されました"); // 動作確認のため
+
     if (title) {
+      console.log("スレッドタイトル:", title); // 入力されたタイトルを確認
       supabase
         .from('threads')
         .insert([{ title: title, created_by: 1 }])  // 作成者IDを仮で1とする
         .then(response => {
           if (response.error) {
-            console.error(response.error);
+            console.error("スレッド作成エラー:", response.error);
           } else {
+            console.log("スレッド作成成功", response);
             loadThreads();  // スレッドのリストを再読み込み
           }
+        })
+        .catch(error => {
+          console.error("ネットワークエラー:", error); // ネットワークエラーの確認
         });
+    } else {
+      console.log("タイトルが入力されていません");
     }
   }
 
@@ -151,6 +160,9 @@
       commentsContainer.style.display = 'none';  // コメントを非表示
     }
   }
+
+  // スレッド作成ボタンにイベントリスナーを追加
+  document.getElementById('create-thread-button').addEventListener('click', createThread);
 </script>
 
 </body>
