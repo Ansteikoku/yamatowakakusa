@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>わかくさ掲示板</title>
+  <style>
+    /* 基本のスタイル */
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #4CAF50, #8BC34A);
+      color: white;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 30px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      color: #333;
+    }
+
+    /* ログインフォーム */
+    .login-form {
+      background-color: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    .login-form input[type="password"] {
+      width: 80%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+
+    .login-form button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 85%;
+      font-size: 16px;
+    }
+
+    .login-form button:hover {
+      background-color: #45a049;
+    }
+
+    #errorMessage {
+      color: red;
+      display: none;
+      font-size: 14px;
+    }
+
+    /* 掲示板のスタイル */
+    .board {
+      display: none;
+      background-color: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .board input[type="text"], .board textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+
+    .board button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      font-size: 16px;
+    }
+
+    .board button:hover {
+      background-color: #45a049;
+    }
+
+    /* コメントセクション */
+    .comments {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+    }
+
+    .comment {
+      padding: 10px;
+      background-color: #e9f5e9;
+      border-bottom: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    .comment .name {
+      font-weight: bold;
+      font-size: 14px;
+      color: #4CAF50;
+    }
+
+    .comment .content {
+      font-size: 14px;
+      color: #555;
+    }
+
+    h2 {
+      color: #4CAF50;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- ログインフォーム -->
+    <div class="login-form" id="loginForm">
+      <h2>わかくさ掲示板 - ログイン</h2>
+      <input type="password" id="password" placeholder="パスワードを入力" />
+      <button id="loginButton">ログイン</button>
+      <p id="errorMessage">パスワードが間違っています。</p>
+    </div>
+
+    <!-- 掲示板 -->
+    <div class="board" id="board">
+      <h2>わかくさ掲示板</h2>
+      <div>
+        <input type="text" id="name" placeholder="名前を入力" />
+        <textarea id="comment" placeholder="コメントを入力"></textarea>
+        <button onclick="postComment()">コメントを投稿</button>
+      </div>
+      <div class="comments" id="comments"></div>
+    </div>
+  </div>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <script>
+    // Supabaseの設定
+    const supabaseUrl = 'https://xlgkvpgawukhdjcdjaub.supabase.co';  // SupabaseのURL
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhsZ2t2cGdhd3VraGRqY2RqYXViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyMzg5NTUsImV4cCI6MjA2NjgxNDk1NX0.Xqsw-63TLY8RJP1vLL2EOh0-XvjpTR7exRYD9i_wLzg';  // Supabaseのanonキー
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+    const correctPassword = 'wakakusa';  // ログインパスワード
+
+    // ログイン処理
+    function login() {
+      const enteredPassword = document.getElementById('password').value;
+      console.log('ログインボタンがクリックされました'); // デバッグ用
+
+      if (!enteredPassword) {
+        alert('パスワードを入力してください');
+        return;
+      }
+
+      if (enteredPassword === correctPassword) {
+        // ログイン成功
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('board').style.display = 'block';
+        loadComments();  // コメントをロードする
+        setupRealtime(); // リアルタイム更新の設定
+      } else {
+        // パスワードが間違っている場合
+        console.error('ログイン失敗：入力されたパスワードが間違っています');
+        alert('ログインに失敗しました。パスワードが間違っています');
+        document.getElementById('errorMessage').style.display = 'block';
+      }
+    }
+
+    // ログインボタンのイベントリスナーを設定
+    document.getElementById('loginButton').addEventListener('click', function() {
+      console.log('ログインボタンがクリックされました（リスナー）'); // デバッグ用
+      login();
+    });
+
+    // コメント投稿処理
+    async function postComment() {
+      const name = document.getElementById('name').value;
+      const comment = document.getElementById('comment').value;
+
+      if (name && comment) {
+        // Supabaseにコメントを保存
+        const { data, error } = await supabase
+          .from('comments')
+          .insert([
+            { name: name, comment: comment }
+          ]);
+
+        if (error) {
+          console.error('コメント投稿エラー:', error.message);
+          alert('コメントの投稿に失敗しました');
+        } else {
+          // コメントを追加した後に、コメントリストを更新
+          loadComments();
+          document.getElementById('name').value = '';
+          document.getElementById('comment').value = '';
+        }
+      } else {
+        alert('名前とコメントを入力してください');
+      }
+    }
+
+    // コメントをロードして表示
+    async function loadComments() {
+      const { data, error } = await supabase
+        .from('comments')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('コメントの読み込みエラー:', error.message);
+        alert('コメントの読み込みに失敗しました');
+      } else {
+        const commentSection = document.getElementById('comments');
+        commentSection.innerHTML = '';  // 既存のコメントをクリア
+
+        data.forEach(comment => {
+          const newComment = document.createElement('div');
+          newComment.classList.add('comment');
+          newComment.innerHTML = `<span class="name">${comment.name}</span>: <span class="content">${comment.comment}</span>`;
+          commentSection.appendChild(newComment);
+        });
+      }
+    }
+
+    // Supabaseのリアルタイム機能を使用してコメントが追加される度に表示を更新
+    function setupRealtime() {
+      supabase
+        .from('comments')
+        .on('INSERT', payload => {
+          loadComments(); // コメントが追加される度に再読み込み
+        })
+        .subscribe();
+    }
+  </script>
+
+</body>
+</html>
